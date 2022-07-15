@@ -1,7 +1,7 @@
 import { Constants } from "./contants";
 import { Entity } from "./entity";
 
-export class Square extends Entity {
+export class Circle extends Entity {
 
     draw(xOffset: number, yOffset: number, ctx: CanvasRenderingContext2D): void {
         let entityCenterX = xOffset + this.xCoordinate;
@@ -17,8 +17,8 @@ export class Square extends Entity {
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(Constants.LENGTH, 0);
+        ctx.arc(0, 0, Constants.LENGTH / 2, 0, 2 * Math.PI)
         ctx.stroke();
-        ctx.strokeRect(- Constants.LENGTH / 2, - Constants.LENGTH / 2, Constants.LENGTH, Constants.LENGTH);
 
         ctx.setTransform(initialTransform)
     }

@@ -1,9 +1,13 @@
 package main
 
 import (
-	"rethink-poc-server/rethinkdb_test"
+	"context"
+	"rethink-poc-server/entitygenerator"
+	"rethink-poc-server/rdbwriter"
 )
 
 func main() {
-	rethinkdb_test.Example()
+	rdbwriter.Init(context.Background())
+
+	entitygenerator.Start()
 }
