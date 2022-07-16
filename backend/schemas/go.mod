@@ -1,4 +1,4 @@
-module rethink-poc-server
+module poc-schemas
 
 go 1.17
 

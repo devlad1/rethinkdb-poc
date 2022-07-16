@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"rethink-poc-server/entitygenerator"
-	"rethink-poc-server/rdbwriter"
+	"writer/entitygenerator"
+	"writer/rdbwriter"
 )
 
 func main() {

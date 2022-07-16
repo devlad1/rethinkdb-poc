@@ -1,55 +1,38 @@
-import { Component, ViewChild, ElementRef, OnInit } from '@angular/core';
-import { Circle } from './entities/circle';
+import { Component, ViewChild, ElementRef, OnInit, OnDestroy } from '@angular/core';
 import { Color } from './entities/color';
-import { Constants } from './entities/contants';
 import { Entity } from './entities/entity';
-import { Square } from './entities/square';
+import { Shape } from './entities/shape';
+import { StreamService } from './stream.service';
+import { Message, Op, Point, Zoom } from './stream_request';
 
 @Component({
   selector: 'app-map',
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.css'],
 })
-export class MapComponent implements OnInit {
-
-  @ViewChild('canvas', { static: true })
-  canvas!: ElementRef<HTMLCanvasElement>;  
-  
-  private ctx!: CanvasRenderingContext2D;
+export class MapComponent implements OnInit, OnDestroy {
 
   readonly MAP_WIDTH = 1000;
-  readonly MAP_HEIGHT = 800;
+  readonly MAP_HEIGHT = 500;
 
-  private entities: Map<number, Entity>;
-  private xOffset: number = 0;
-  private yOffset: number = 0;
+  @ViewChild('canvas', { static: true })
+  canvas!: ElementRef<HTMLCanvasElement>;
 
+  readonly initialTopLat = 3
+  readonly initialLeftLong = 0
+  readonly initialButtomLat = 0
+  readonly initialRightLong = (this.MAP_WIDTH / this.MAP_HEIGHT) * (this.initialTopLat - this.initialButtomLat) - this.initialLeftLong
+  zoom: Zoom = new Zoom(new Point(this.initialLeftLong, this.initialTopLat), new Point(this.initialRightLong, this.initialButtomLat))
+
+  private ctx!: CanvasRenderingContext2D;
+  private entities: Map<number, Entity> = new Map;
   private isDragging: boolean = false;
   private dragStartX: number = 0;
   private dragStartY: number = 0;
 
-  constructor() {
-    this.entities = new Map;
-    this.entities.set(1, new Square(1, "test", Color.RED, 10, 71, 1, 1))
-    this.entities.set(2, new Square(1, "test", Color.BLACK, 20, 61, 2, 1))
-    this.entities.set(3, new Square(1, "test", Color.GREEN, 30, 51, 1, 1))
-    this.entities.set(4, new Square(1, "test", Color.BLUE, 40, 31, 3, 1))
-    this.entities.set(5, new Square(1, "test", Color.RED, 50, 21, 1, 1))
-    this.entities.set(6, new Square(1, "test", Color.RED, 60, 101, 4, 1))
-    this.entities.set(7, new Square(1, "test", Color.RED, 70, 11, 1, 1))
-    this.entities.set(8, new Square(1, "test", Color.RED, 90, 41, 1, 1))
-    this.entities.set(9, new Square(1, "test", Color.RED, 170, 15, 1, 1))
-    this.entities.set(10, new Square(1, "test", Color.RED, -70, 111, 1, 1))
-    this.entities.set(11, new Circle(1, "test", Color.RED, 110, 71, 1, 1))
-    this.entities.set(12, new Circle(1, "test", Color.BLACK, 120, 61, 2, 1))
-    this.entities.set(13, new Circle(1, "test", Color.GREEN, 130, 51, 1, 1))
-    this.entities.set(14, new Circle(1, "test", Color.BLUE, 140, 31, 3, 1))
-    this.entities.set(15, new Circle(1, "test", Color.RED, 150, 21, 1, 1))
-    this.entities.set(16, new Circle(1, "test", Color.RED, 160, 101, 4, 1))
-    this.entities.set(17, new Circle(1, "test", Color.RED, 170, 11, 1, 1))
-    this.entities.set(18, new Circle(1, "test", Color.RED, 190, 41, 1, 1))
-    this.entities.set(19, new Circle(1, "test", Color.RED, 1170, 15, 1, 1))
-    this.entities.set(20, new Circle(1, "test", Color.RED, -170, 111, 1, 1))
+  constructor(private streamService: StreamService) {
+    // this.entities.set(1, new Entity(1, "test", Color.RED, Shape.SQUARE, 0.5, 0.5, 1, 0))
+    // this.entities.set(20, new Entity(20, "test", Color.RED, Shape.CIRCLE, 1, 1, 1, 1))
   }
 
   ngOnInit(): void {
@@ -61,16 +44,26 @@ export class MapComponent implements OnInit {
     }
   }
 
+  ngOnDestroy(): void {
+    this.streamService.close()
+  }
+
   startDrag(event: MouseEvent): void {
     this.isDragging = true;
     this.dragStartX = event.x;
     this.dragStartY = event.y;
+
+    // this.ctx.clearRect(0, 0, this.MAP_WIDTH, this.MAP_HEIGHT)
+    // this.entities.forEach((entity: Entity, _: number) => {
+    //   console.log(entity)
+    //   Entity.draw(entity, this.zoom, this.ctx, this.MAP_WIDTH, this.MAP_HEIGHT);
+    // })
   }
 
   moveDrag(event: MouseEvent): void {
-    if(this.isDragging) {
-      this.xOffset += (event.x - this.dragStartX)
-      this.yOffset += (event.y - this.dragStartY)
+    if (this.isDragging) {
+      this.zoom.addLong(-(event.x - this.dragStartX) * (this.zoom.width / this.MAP_WIDTH))
+      this.zoom.addLat((event.y - this.dragStartY) * (this.zoom.height / this.MAP_HEIGHT))
       this.dragStartX = event.x;
       this.dragStartY = event.y;
       this.animate()
@@ -81,11 +74,40 @@ export class MapComponent implements OnInit {
     this.isDragging = false;
   }
 
+  changeZoom(event: WheelEvent): void {
+    let yDiff = -Math.sign(event.deltaY) * this.zoom.height / 5
+    let xDiff = yDiff * (this.MAP_WIDTH / this.MAP_HEIGHT)
+    if (this.zoom.topLeft.longitude + xDiff < Zoom.MAX_LONG && this.zoom.topLeft.longitude + xDiff > -Zoom.MAX_LONG &&
+      this.zoom.topLeft.latitude - yDiff < Zoom.MAX_LAT && this.zoom.topLeft.latitude - yDiff > -Zoom.MAX_LAT &&
+      this.zoom.buttomRight.longitude - xDiff < Zoom.MAX_LONG && this.zoom.buttomRight.longitude - xDiff > -Zoom.MAX_LONG &&
+      this.zoom.buttomRight.latitude + xDiff < Zoom.MAX_LAT && this.zoom.buttomRight.latitude + xDiff > -Zoom.MAX_LAT) {
+      this.zoom.topLeft.longitude += xDiff
+      this.zoom.topLeft.latitude += -yDiff
+      this.zoom.buttomRight.longitude += -xDiff
+      this.zoom.buttomRight.latitude += yDiff
+      this.animate()
+    }
+  }
+
   animate(): void {
-    this.ctx.clearRect(0, 0, this.MAP_WIDTH, this.MAP_HEIGHT)
-    this.entities.forEach((entity: Entity, _: number) => {
-      entity.draw(this.xOffset, this.yOffset, this.ctx);
-    })
+
+    this.streamService.start(this.zoom).subscribe({
+      next: (m: Message) => {
+        switch (m.op) {
+          case Op.CREATE:
+            this.entities.set(m.entity.id, m.entity); break
+          case Op.UPDATE:
+            this.entities.set(m.entity.id, m.entity); break
+          case Op.DELETE:
+            this.entities.delete(m.entity.id); break
+        }
+        this.ctx.clearRect(0, 0, this.MAP_WIDTH, this.MAP_HEIGHT)
+        this.entities.forEach((entity: Entity, _: number) => {
+          console.log(entity)
+          Entity.draw(entity, this.zoom, this.ctx, this.MAP_WIDTH, this.MAP_HEIGHT);
+        })
+      },
+    });
   }
 
 }

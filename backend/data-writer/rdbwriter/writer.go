@@ -3,15 +3,17 @@ package rdbwriter
 import (
 	"context"
 	"log"
+	"os"
 
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 
-	"rethink-poc-server/schemas"
+	"schemas"
 )
 
 const (
 	dbName    = "db_poc"
 	tableName = "table_poc"
+	indexName = "location"
 )
 
 var s *r.Session = nil
@@ -26,6 +28,8 @@ func Init(parentCtx context.Context) {
 	initSession()
 	initDb()
 	initTable()
+	initIndex()
+
 }
 
 func WriteEntity(entity *schemas.Entity) error {
@@ -41,11 +45,11 @@ func WriteEntity(entity *schemas.Entity) error {
 	return err
 }
 
-func DeleteEntity(entity *schemas.Entity) error {
+func DeleteEntity(id int) error {
 	_, err := r.
 		DB(dbName).
 		Table(tableName).
-		Get(entity.Id).
+		Get(id).
 		Delete().
 		RunWrite(s, r.RunOpts{Context: ctx})
 	return err
@@ -53,7 +57,7 @@ func DeleteEntity(entity *schemas.Entity) error {
 
 func initSession() {
 	session, err := r.Connect(r.ConnectOpts{
-		Address: "localhost", // endpoint without http
+		Address: getenv("RETHINKDB_HOST", "localhost"),
 	})
 	if err != nil {
 		log.Fatalln(err)
@@ -71,13 +75,13 @@ func initDb() {
 	}
 
 	var response interface{}
-	result.One(&response)
+	err = result.One(&response)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	if response == false {
-		r.DBCreate(dbName).RunWrite(s, r.RunOpts{Context: ctx})
+		_, err = r.DBCreate(dbName).RunWrite(s, r.RunOpts{Context: ctx})
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -87,8 +91,54 @@ func initDb() {
 
 func initTable() {
 	var err error
-	r.TableCreate(tableName).RunWrite(s, r.RunOpts{Context: ctx})
+
+	result, err := r.TableList().Contains(tableName).Run(s, r.RunOpts{Context: ctx})
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	var response interface{}
+	err = result.One(&response)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	if response == false {
+		_, err = r.TableCreate(tableName).RunWrite(s, r.RunOpts{Context: ctx})
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
+}
+
+func initIndex() {
+	var err error
+
+	result, err := r.Table(tableName).IndexList().Contains(indexName).Run(s, r.RunOpts{Context: ctx})
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	var response interface{}
+	err = result.One(&response)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	if response == false {
+		_, err = r.Table(tableName).IndexCreate(indexName, r.IndexCreateOpts{
+			Geo: true,
+		}).RunWrite(s, r.RunOpts{Context: ctx})
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
+}
+
+func getenv(key, fallback string) string {
+	value := os.Getenv(key)
+	if len(value) == 0 {
+		return fallback
+	}
+	return value
 }
