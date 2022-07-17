@@ -1,6 +1,7 @@
 package socket
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"log"
@@ -25,12 +26,12 @@ func Start() {
 }
 
 func streamEntitiesInZoom(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, nil)
+	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("upgrade:", err)
 		return
 	}
-	defer c.Close()
+	defer conn.Close()
 
 	zoom, err := parseZoomFromRequest(r)
 	if err != nil {
@@ -38,9 +39,33 @@ func streamEntitiesInZoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stream := queries.GetAllInZoom(zoom)
-	for m := range stream {
-		c.WriteJSON(m)
+	stream := queries.GetAllInZoom(context.TODO(), zoom)
+
+	conn.SetCloseHandler(func(code int, text string) error {
+		log.Println("1 ws close socket handler")
+		stream.Close()
+		return nil
+	})
+	go readClose(conn)
+
+	for m := range stream.MessageCh {
+		err = conn.WriteJSON(m)
+		if err != nil {
+			log.Printf("stopping send, got error '%s'", err)
+			return
+		}
+	}
+}
+
+func readClose(conn *websocket.Conn) {
+	for {
+		_, _, err := conn.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err) {
+				return
+			}
+			log.Printf("got error on read '%s'", err)
+		}
 	}
 }
 

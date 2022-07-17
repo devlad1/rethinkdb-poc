@@ -8,11 +8,17 @@ export class Point {
         this.longitude = longitude;
         this.latitude = latitude;
     }
+
+    static distance(p1: Point, p2: Point) {
+        return Math.sqrt(Math.pow(p2.longitude - p1.longitude, 2) + Math.pow(p2.longitude - p1.longitude, 2))
+    }
 }
 
 export class Zoom {
     public static readonly MAX_LONG = 180.0
     public static readonly MAX_LAT = 90.0
+    public static readonly MAX_DIAG_LEN = 80.0;
+    public static readonly MIN_DIAG_LEN = 3.0;
 
     topLeft: Point
     buttomRight: Point
@@ -35,7 +41,8 @@ export class Zoom {
     }
 
     toString(): string {
-        return `top left: (${this.topLeft.longitude},${this.topLeft.latitude}) buttom right: (${this.buttomRight.longitude},${this.buttomRight.latitude})`
+        return `top left: (${this.topLeft.longitude.toFixed(2)}, ${this.topLeft.latitude.toFixed(2)}) \
+            buttom right: (${this.buttomRight.longitude.toFixed(2)}, ${this.buttomRight.latitude.toFixed(2)})`
     }
 
     addLong(long: number): void {

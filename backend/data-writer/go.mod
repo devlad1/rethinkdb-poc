@@ -4,6 +4,8 @@ go 1.17
 
 require gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
 
+require schemas v0.0.0
+
 require (
 	github.com/golang/protobuf v1.3.4 // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
@@ -15,10 +17,4 @@ require (
 	gopkg.in/cenkalti/backoff.v2 v2.2.1 // indirect
 )
 
-require (
-	"schemas" v0.0.0
-)
-
-replace (
-	"schemas" v0.0.0 => "/home/vlad/stuff/repos/rethink-poc/backend/schemas"
-)
+replace schemas v0.0.0 => /home/vlad/stuff/repos/rethinkdb-poc/backend/schemas

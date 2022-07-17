@@ -16,7 +16,7 @@ export class StreamService {
 
   start(zoom: Zoom): Subject<Message> {
     if (this.socket) {
-      this.socket.close()
+      this.socket.close(1000, "new zoom")
     }
 
     const socket = new WebSocket(`ws://${environment.serverHost}/zoom?zoom=${JSON.stringify(zoom)}`)
@@ -27,6 +27,10 @@ export class StreamService {
     socket.addEventListener('message', function (event: MessageEvent<any>) {
       let m: Message = JSON.parse(event.data)
       subject.next(m)
+    });
+
+    socket.addEventListener('close', function (event: CloseEvent) {
+      console.log(`got close event ${event.reason}`)
     });
 
     this.socket = socket

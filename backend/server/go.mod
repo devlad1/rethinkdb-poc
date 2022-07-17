@@ -20,4 +20,4 @@ require (
 	schemas v0.0.0
 )
 
-replace schemas v0.0.0 => /home/vlad/stuff/repos/rethink-poc/backend/schemas
+replace schemas v0.0.0 => /home/vlad/stuff/repos/rethinkdb-poc/backend/schemas

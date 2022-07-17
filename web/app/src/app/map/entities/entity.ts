@@ -15,7 +15,7 @@ export class Entity {
     latitude: number;
     longV: number;
     latV: number;
-    
+
     constructor(id: number, name: String, color: Color, shape: Shape, longitude: number, latitude: number, longV: number, latV: number) {
         this.id = id;
         this.name = name;
@@ -27,16 +27,35 @@ export class Entity {
         this.latV = latV;
     }
 
+    static longToCanvasX(longitude: number, zoom: Zoom, canvasWidth: number): number {
+        return (-zoom.topLeft.longitude + longitude) * (canvasWidth / zoom.width)
+    }
+
+    static latToCanvaY(latitude: number, zoom: Zoom, canvasHeight: number): number {
+        return -(-zoom.topLeft.latitude + latitude) * (canvasHeight / zoom.height)
+    }
+
     static draw(entity: Entity, zoom: Zoom, ctx: CanvasRenderingContext2D, canvasWidth: number, canvasHeight: number): void {
-        let entityCenterX = (-zoom.topLeft.longitude + entity.longitude) * (canvasWidth / zoom.width);
-        let entityCenterY = -(-zoom.topLeft.latitude + entity.latitude) * (canvasHeight / zoom.height);
-        let angle = Math.asin(entity.latV / -entity.longV)
+        let entityCenterX = Entity.longToCanvasX(entity.longitude, zoom, canvasWidth)
+        let entityCenterY = Entity.latToCanvaY(entity.latitude, zoom, canvasHeight)
+        let angle = Math.abs(Math.atan(entity.latV / entity.longV))
+        if (entity.longV < 0 && entity.latV > 0) {
+            angle = Math.PI - angle
+        }
+        if (entity.longV < 0 && entity.latV < 0) {
+            angle += Math.PI
+        }
+        if (entity.longV > 0 && entity.latV < 0) {
+            angle = 2 * Math.PI - angle
+        }
 
         ctx.strokeStyle = entity.color;
 
         let initialTransform = ctx.getTransform()
         ctx.translate(entityCenterX, entityCenterY)
-        ctx.rotate(angle)
+        ctx.fillText(`${entity.longitude.toFixed(2)}, ${entity.latitude.toFixed(2)}`, Entity.LENGTH, 0)
+        ctx.fillText(`${entity.longV.toFixed(2)}, ${entity.latV.toFixed(2)}`, Entity.LENGTH, 10)
+        ctx.rotate(-angle)
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(Entity.LENGTH, 0);

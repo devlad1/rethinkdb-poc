@@ -1,5 +1,16 @@
 <p>zoom: {{ zoom.toString() }}</p>
 
-<canvas (mousedown)="startDrag($event)" (mousemove)="moveDrag($event)" (mouseup)="stopDrag($event)" (wheel)="changeZoom($event)" #canvas
-    width="{{ this.MAP_WIDTH }}" height="{{ this.MAP_HEIGHT }}">
-</canvas>
+<div style="width: 100%; overflow: hidden;">
+    <div style="width: 1020px; float: left;">
+        <canvas (contextmenu)="rightclick($event)" (mousedown)="startDrag($event)" (mousemove)="moveDrag($event)" (mouseup)="stopDrag($event)" (wheel)="changeZoom($event)" #mapCanvas
+            width="{{ this.MAP_WIDTH }}" height="{{ this.MAP_HEIGHT }}">
+        </canvas>
+    </div>
+    
+    <div style="margin-left: 1020px;">
+        <mat-card>
+            <p *ngFor="let m of messages; index as i">${{ m.op }} {{ m.entity.longitude.toFixed(2) }} {{ m.entity.latitude.toFixed(2) }}</p>
+        </mat-card>
+    </div>
+</div>
+
