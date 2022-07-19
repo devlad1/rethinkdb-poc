@@ -17,4 +17,4 @@ require (
 	gopkg.in/cenkalti/backoff.v2 v2.2.1 // indirect
 )
 
-replace schemas v0.0.0 => /home/vlad/stuff/repos/rethinkdb-poc/backend/schemas
+replace schemas v0.0.0 => ../schemas

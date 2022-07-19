@@ -22,6 +22,7 @@ var upgrader = websocket.Upgrader{
 func Start() {
 	flag.Parse()
 	http.HandleFunc("/zoom", streamEntitiesInZoom)
+	http.HandleFunc("/polygon", streamEntitiesInPolygon)
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
 
@@ -40,6 +41,38 @@ func streamEntitiesInZoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	stream := queries.GetAllInZoom(context.TODO(), zoom)
+
+	conn.SetCloseHandler(func(code int, text string) error {
+		log.Println("1 ws close socket handler")
+		stream.Close()
+		return nil
+	})
+	go readClose(conn)
+
+	for m := range stream.MessageCh {
+		err = conn.WriteJSON(m)
+		if err != nil {
+			log.Printf("stopping send, got error '%s'", err)
+			return
+		}
+	}
+}
+
+func streamEntitiesInPolygon(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Print("upgrade:", err)
+		return
+	}
+	defer conn.Close()
+
+	polygon, err := parsePolygonFromRequest(r)
+	if err != nil {
+		log.Print("bad polygon:", err)
+		return
+	}
+
+	stream := queries.GetAllInPolygon(context.TODO(), polygon)
 
 	conn.SetCloseHandler(func(code int, text string) error {
 		log.Println("1 ws close socket handler")
@@ -81,4 +114,18 @@ func parseZoomFromRequest(r *http.Request) (schemas.Zoom, error) {
 	}
 
 	return parsedZoom, nil
+}
+
+func parsePolygonFromRequest(r *http.Request) ([]schemas.Point, error) {
+
+	rawObj := strings.Split(r.URL.RawQuery, "=")[1]
+	rawObj = strings.ReplaceAll(rawObj, "%22", "\"")
+
+	var parsedPolygon []schemas.Point
+	err := json.Unmarshal([]byte(rawObj), &parsedPolygon)
+	if err != nil {
+		return nil, err
+	}
+
+	return parsedPolygon, nil
 }

@@ -29,7 +29,6 @@ func Init(parentCtx context.Context) {
 	initDb()
 	initTable()
 	initIndex()
-
 }
 
 func WriteEntity(entity *schemas.Entity) error {

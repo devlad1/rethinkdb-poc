@@ -31,13 +31,13 @@ export class Entity {
         return (-zoom.topLeft.longitude + longitude) * (canvasWidth / zoom.width)
     }
 
-    static latToCanvaY(latitude: number, zoom: Zoom, canvasHeight: number): number {
+    static latToCanvasY(latitude: number, zoom: Zoom, canvasHeight: number): number {
         return -(-zoom.topLeft.latitude + latitude) * (canvasHeight / zoom.height)
     }
 
     static draw(entity: Entity, zoom: Zoom, ctx: CanvasRenderingContext2D, canvasWidth: number, canvasHeight: number): void {
         let entityCenterX = Entity.longToCanvasX(entity.longitude, zoom, canvasWidth)
-        let entityCenterY = Entity.latToCanvaY(entity.latitude, zoom, canvasHeight)
+        let entityCenterY = Entity.latToCanvasY(entity.latitude, zoom, canvasHeight)
         let angle = Math.abs(Math.atan(entity.latV / entity.longV))
         if (entity.longV < 0 && entity.latV > 0) {
             angle = Math.PI - angle
@@ -53,6 +53,7 @@ export class Entity {
 
         let initialTransform = ctx.getTransform()
         ctx.translate(entityCenterX, entityCenterY)
+        ctx.fillText(`${entity.id}`, Entity.LENGTH, -10)
         ctx.fillText(`${entity.longitude.toFixed(2)}, ${entity.latitude.toFixed(2)}`, Entity.LENGTH, 0)
         ctx.fillText(`${entity.longV.toFixed(2)}, ${entity.latV.toFixed(2)}`, Entity.LENGTH, 10)
         ctx.rotate(-angle)

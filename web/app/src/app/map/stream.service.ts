@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 import { environment } from 'src/environments/environment';
-import { Message, Zoom } from './stream_request';
+import { Message, Point, Zoom } from './stream_request';
 
 @Injectable({
   providedIn: 'root'
@@ -14,12 +14,26 @@ export class StreamService {
     this.socket = null
   }
 
-  start(zoom: Zoom): Subject<Message> {
+  startZoomStream(zoom: Zoom): Subject<Message> {
+    return this.updateSocketStream(`ws://${environment.serverHost}/zoom?zoom=${JSON.stringify(zoom)}`)
+  }
+
+  startPolygonStream(polygon: Array<Point>): Subject<Message> {
+    return this.updateSocketStream(`ws://${environment.serverHost}/polygon?polygon=${JSON.stringify(polygon)}`);
+  }
+
+  close(): void {
     if (this.socket) {
-      this.socket.close(1000, "new zoom")
+      this.socket.close()
+    }
+  }
+
+  private updateSocketStream(url: string): Subject<Message> {
+    if (this.socket) {
+      this.socket.close(1000, `url close`)
     }
 
-    const socket = new WebSocket(`ws://${environment.serverHost}/zoom?zoom=${JSON.stringify(zoom)}`)
+    const socket = new WebSocket(url)
     let subject = new Subject<Message>()
 
     socket.addEventListener('open', function (_) {});
@@ -37,11 +51,4 @@ export class StreamService {
 
     return subject
   }
-
-  close(): void {
-    if (this.socket) {
-      this.socket.close()
-    }
-  }
-
 }

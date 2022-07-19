@@ -38,15 +38,14 @@ func Init(parentCtx context.Context) {
 	s = session
 }
 
-func GetAllInZoom(zoomCtx context.Context, zoom schemas.Zoom) Stream {
+func GetAllInPolygon(ctx context.Context, polygon []schemas.Point) Stream {
 
-	rdbPoints := make([]interface{}, 4)
-	rdbPoints[0] = r.Point(zoom.TopLeft.Longitude, zoom.TopLeft.Latitude)
-	rdbPoints[1] = r.Point(zoom.ButtomRight.Longitude, zoom.TopLeft.Latitude)
-	rdbPoints[2] = r.Point(zoom.ButtomRight.Longitude, zoom.ButtomRight.Latitude)
-	rdbPoints[3] = r.Point(zoom.TopLeft.Longitude, zoom.ButtomRight.Latitude)
+	rdbPoints := make([]interface{}, 0)
+	for _, point := range polygon {
+		rdbPoints = append(rdbPoints, r.Point(point.Longitude, point.Latitude))
+	}
 
-	stream := NewStream(zoomCtx)
+	stream := NewStream(ctx)
 
 	go func() {
 		result, err := r.
@@ -106,4 +105,13 @@ func GetAllInZoom(zoomCtx context.Context, zoom schemas.Zoom) Stream {
 	}()
 
 	return stream
+}
+
+func GetAllInZoom(zoomCtx context.Context, zoom schemas.Zoom) Stream {
+	return GetAllInPolygon(zoomCtx, []schemas.Point{
+		zoom.TopLeft,
+		{Longitude: zoom.ButtomRight.Longitude, Latitude: zoom.TopLeft.Latitude},
+		zoom.ButtomRight,
+		{Longitude: zoom.TopLeft.Longitude, Latitude: zoom.ButtomRight.Latitude},
+	})
 }

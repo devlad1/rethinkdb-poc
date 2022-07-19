@@ -13,9 +13,11 @@ RUN go mod download
 
 COPY . ./
 
-RUN go build -o /data-writer
+RUN go build -o /server
 
-EXPOSE 8080
+EXPOSE 8082
 
 ENV RETHINKDB_HOST="db"
-CMD [ "/data-writer" ]
+# ENV SERVER_HOST="server:8082"
+
+CMD [ "/server" ]
