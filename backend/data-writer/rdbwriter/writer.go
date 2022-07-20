@@ -32,7 +32,7 @@ func Init(parentCtx context.Context) {
 }
 
 func WriteEntity(entity *schemas.Entity) error {
-	_, err := r.
+	err := r.
 		DB(dbName).
 		Table(tableName).
 		Insert(entity, r.InsertOpts{
@@ -40,17 +40,17 @@ func WriteEntity(entity *schemas.Entity) error {
 				return newDoc
 			},
 		}).
-		RunWrite(s, r.RunOpts{Context: ctx})
+		Exec(s, r.ExecOpts{Context: ctx, NoReply: true})
 	return err
 }
 
 func DeleteEntity(id int) error {
-	_, err := r.
+	err := r.
 		DB(dbName).
 		Table(tableName).
 		Get(id).
 		Delete().
-		RunWrite(s, r.RunOpts{Context: ctx})
+		Exec(s, r.ExecOpts{Context: ctx, NoReply: true})
 	return err
 }
 

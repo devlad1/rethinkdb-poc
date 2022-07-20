@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	numberOfEntities = 100
-	updateRate       = 10
+	numberOfEntities = 200
+	updateRate       = 3
 )
 
 const (
@@ -60,7 +60,12 @@ func Start() {
 	}
 
 	for {
-		if len(entities) > 10 {
+		if len(entities) > int(float32(numberOfEntities)*1.1) {
+			index := rand.Intn(len(entities))
+			deleteEntity(index)
+		} else if len(entities) < int(float32(numberOfEntities)*0.9) {
+			generateRandomEntity()
+		} else {
 			actionSeed := rand.Intn(10)
 			switch actionSeed {
 			case 0:
@@ -72,10 +77,8 @@ func Start() {
 				index := rand.Intn(len(entities))
 				updateExistingEntity(entities[index])
 			}
-			time.Sleep(time.Second / time.Duration(updateRate*numberOfEntities))
-		} else {
-			generateRandomEntity()
 		}
+		time.Sleep(time.Second / time.Duration(updateRate*numberOfEntities))
 	}
 }
 
