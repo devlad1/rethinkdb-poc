@@ -18,6 +18,6 @@ RUN go build -o /server
 EXPOSE 8082
 
 ENV RETHINKDB_HOST="db"
-# ENV SERVER_HOST="server:8082"
+ENV SERVER_HOST="server:8082"
 
 CMD [ "/server" ]

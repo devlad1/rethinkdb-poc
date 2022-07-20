@@ -12,18 +12,23 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
+var (
+	numberOfEntities = 100
+	updateRate       = 10
+)
+
 const (
-	_MAX              int64   = 100 // number of entities
-	_RATE             int64   = 10  // updates per second per entity
-	_MIN_LONGITUDE    float64 = -180.0
-	_MIN_LONG_VEL     float64 = -1.000
-	_MAX_LONGITUDE    float64 = 180.0
-	_MAX_LONG_VEL     float64 = 1.000
-	_MIN_LATITUDE     float64 = -90.0
-	_MIN_LAT_VEL      float64 = -1.000
-	_MAX_LATITUDE     float64 = 90.0
-	_MAX_LAT_VEL      float64 = 1.000
-	_VEL_CHANGE_COEFF float64 = 0.05
+	_MAX_NUMBER_OF_ENTITIES int     = 1000 // number of entities
+	_MAX_UPDATE_RATE        int     = 100  // updates per second per entity
+	_MIN_LONGITUDE          float64 = -180.0
+	_MIN_LONG_VEL           float64 = -1.000
+	_MAX_LONGITUDE          float64 = 180.0
+	_MAX_LONG_VEL           float64 = 1.000
+	_MIN_LATITUDE           float64 = -90.0
+	_MIN_LAT_VEL            float64 = -1.000
+	_MAX_LATITUDE           float64 = 90.0
+	_MAX_LAT_VEL            float64 = 1.000
+	_VEL_CHANGE_COEFF       float64 = 0.05
 )
 
 var (
@@ -31,8 +36,26 @@ var (
 	currId   int64             = 0
 )
 
+func SetNumberOfEntities(newNumberOfEntities int) {
+	if newNumberOfEntities > _MAX_NUMBER_OF_ENTITIES {
+		log.Printf("Tried to set number of entities to %d, when max is %d", newNumberOfEntities, _MAX_NUMBER_OF_ENTITIES)
+		return
+	}
+	log.Printf("Set number of entities to %d", newNumberOfEntities)
+	numberOfEntities = newNumberOfEntities
+}
+
+func SetUpdateRate(newRate int) {
+	if newRate > _MAX_NUMBER_OF_ENTITIES {
+		log.Printf("Tried to set update rate to %d, when max is %d", newRate, _MAX_UPDATE_RATE)
+		return
+	}
+	log.Printf("Set update rate to %d", newRate)
+	updateRate = newRate
+}
+
 func Start() {
-	for i := 0; i < int(_MAX); i++ {
+	for i := 0; i < int(numberOfEntities); i++ {
 		generateRandomEntity()
 	}
 
@@ -49,7 +72,7 @@ func Start() {
 				index := rand.Intn(len(entities))
 				updateExistingEntity(entities[index])
 			}
-			time.Sleep(time.Second / time.Duration(_RATE*_MAX))
+			time.Sleep(time.Second / time.Duration(updateRate*numberOfEntities))
 		} else {
 			generateRandomEntity()
 		}

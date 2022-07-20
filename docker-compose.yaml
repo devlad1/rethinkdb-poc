@@ -4,9 +4,17 @@ services:
     image: my-app:0.1
     restart: unless-stopped
     ports:
-      - "4200:80"
+      - "4200:8080"
+      - "8081:80"
     depends_on:
       - server
+    deploy:
+      resources:
+        limits:
+          cpus: 0.50
+          memory: 512M
+        reservations:
+          memory: 128M
   server:
     image: "rdb-poc-server:0.1"
     depends_on:
@@ -14,16 +22,39 @@ services:
     ports:
       - "8082:8082"
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: 0.50
+          memory: 512M
+        reservations:
+          memory: 128M
   data-writer:
     image: "data-writer:0.1"
     depends_on:
       - db
     restart: unless-stopped
+    ports:
+    - "8083:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: 0.50
+          memory: 512M
+        reservations:
+          memory: 128M
   db:
     image: "rethinkdb"
     restart: unless-stopped
     ports:
       - "8080:8080"
       - "28015:28015"
+    # deploy:
+      # resources:
+      #   limits:
+      #     cpus: 0.50
+      #     memory: 512M
+      #   reservations:
+      #     memory: 128M
 
 

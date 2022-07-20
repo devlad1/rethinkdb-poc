@@ -52,7 +52,10 @@ func GetAllInPolygon(ctx context.Context, polygon []schemas.Point) Stream {
 			DB(dbName).
 			Table(tableName).
 			GetIntersecting(r.Polygon(rdbPoints...), r.GetIntersectingOpts{Index: "location"}).
-			Changes(r.ChangesOpts{IncludeInitial: true}).
+			Changes(r.ChangesOpts{
+				IncludeInitial: true,
+				Squash:         true,
+			}).
 			Run(s, r.RunOpts{Context: globalCtx})
 		if err != nil {
 			log.Fatal(err)

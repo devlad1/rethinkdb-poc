@@ -8,13 +8,12 @@ import (
 	"net/http"
 	"schemas"
 	"server/queries"
-	"server/utils"
 	"strings"
 
 	"github.com/gorilla/websocket"
 )
 
-var addr = flag.String("addr", utils.GetenvWithDefault("SERVER_HOST", "localhost:8082"), "http service address")
+var addr = flag.String("addr", ":8082", "http service address")
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(_ *http.Request) bool { return true },
 }
