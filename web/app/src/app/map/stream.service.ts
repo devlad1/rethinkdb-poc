@@ -1,8 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 import { environment } from 'src/environments/environment';
-import { Color } from './entities/color';
-import { Shape } from './entities/shape';
 import { Message, Point, Zoom } from './stream_request';
 
 @Injectable({
