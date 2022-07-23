@@ -54,6 +54,8 @@ export class MapComponent implements OnInit, OnDestroy {
     this.mapCtx = MapComponent.initCanvasCtx(this.mapCanvas)
     this.polygonCtx = MapComponent.initCanvasCtx(this.mapCanvas)
 
+    setInterval(() => this.resetAndDrawCanvas(), 16)
+
     this.updateZoomStream()
   }
 
@@ -85,7 +87,6 @@ export class MapComponent implements OnInit, OnDestroy {
     if (this.isPolygonQueryActive) {
       this.isPolygonQueryActive = false
       this.polygonPoints = new Array
-      this.resetAndDrawCanvas()
       this.updateZoomStream()
       return
     }
@@ -112,8 +113,6 @@ export class MapComponent implements OnInit, OnDestroy {
       this.isPolygonQueryActive = true
       this.updatePolygonStream()
     }
-
-    this.resetAndDrawCanvas()
   }
 
   startDrag(event: MouseEvent): void {
@@ -134,7 +133,6 @@ export class MapComponent implements OnInit, OnDestroy {
       this.zoom.addLat((this.relativeY(event.y) - this.dragStartY) * (this.zoom.height / this.MAP_HEIGHT))
       this.dragStartX = this.relativeX(event.x);
       this.dragStartY = this.relativeY(event.y);
-      this.resetAndDrawCanvas()
     }
   }
 
@@ -159,7 +157,6 @@ export class MapComponent implements OnInit, OnDestroy {
       Point.distance(newTopLeft, newButtomRight) > Zoom.MIN_DIAG_LEN) {
       this.zoom.topLeft = newTopLeft
       this.zoom.buttomRight = newButtomRight
-      this.resetAndDrawCanvas()
       this.updateZoomStream()
     }
   }
@@ -210,7 +207,6 @@ export class MapComponent implements OnInit, OnDestroy {
           case Op.DELETE:
             this.entities.delete(m.entity.id); break
         }
-        this.resetAndDrawCanvas()
       },
       error: (err: any) => console.log(`got error ${err} while sending entities`),
       complete: () => this.streamService.close()
