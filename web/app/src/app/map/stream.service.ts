@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { Color } from './entities/color';
+import { Shape } from './entities/shape';
 import { Message, Point, Zoom } from './stream_request';
 
 @Injectable({
@@ -10,16 +12,20 @@ export class StreamService {
 
   private socket: WebSocket | null
 
-  constructor() { 
+  constructor() {
     this.socket = null
   }
 
-  startZoomStream(zoom: Zoom): Subject<Message> {
-    return this.updateSocketStream(`ws://${environment.serverHost}/zoom?zoom=${JSON.stringify(zoom)}`)
+  startZoomStream(zoom: Zoom, colorsFilter?: string[], shapesFilter?: string[]): Subject<Message> {
+    return this.updateSocketStream(`ws://${environment.serverHost}/zoom?zoom=${JSON.stringify(zoom)}` +
+      `${colorsFilter ? '&colors=' + colorsFilter : ''}` +
+      `${shapesFilter ? '&shapes=' + shapesFilter : ''}`)
   }
 
-  startPolygonStream(polygon: Array<Point>): Subject<Message> {
-    return this.updateSocketStream(`ws://${environment.serverHost}/polygon?polygon=${JSON.stringify(polygon)}`);
+  startPolygonStream(polygon: Array<Point>, colorsFilter?: string[], shapesFilter?: string[]): Subject<Message> {
+    return this.updateSocketStream(`ws://${environment.serverHost}/polygon?polygon=${JSON.stringify(polygon)}` +
+      `${colorsFilter ? '&colors=' + colorsFilter : ''}` +
+      `${shapesFilter ? '&shapes=' + shapesFilter : ''}`)
   }
 
   close(): void {
@@ -36,7 +42,7 @@ export class StreamService {
     const socket = new WebSocket(url)
     let subject = new Subject<Message>()
 
-    socket.addEventListener('open', function (_) {});
+    socket.addEventListener('open', function (_) { });
 
     socket.addEventListener('message', function (event: MessageEvent<any>) {
       let m: Message = JSON.parse(event.data)

@@ -49,7 +49,7 @@ export class Entity {
             angle = 2 * Math.PI - angle
         }
 
-        ctx.strokeStyle = entity.color;
+        ctx.strokeStyle = `#${entity.color}`;
 
         let initialTransform = ctx.getTransform()
         ctx.translate(entityCenterX, entityCenterY)

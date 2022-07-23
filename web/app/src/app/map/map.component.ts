@@ -5,6 +5,9 @@ import { Message, Op, Point, Zoom } from './stream_request';
 import { Queue } from 'queue-typescript';
 import * as isects from '2d-polygon-self-intersections';
 import { Subject } from 'rxjs/internal/Subject';
+import { FormControl, FormGroup } from '@angular/forms';
+import { Color } from './entities/color';
+import { Shape } from './entities/shape';
 
 @Component({
   selector: 'app-map',
@@ -35,14 +38,22 @@ export class MapComponent implements OnInit, OnDestroy {
 
   messages: Queue<Message> = new Queue
   polygonPoints: Array<Point> = new Array
-  mousePos: Point = new Point(0, 0)
   messageToUser: string = ""
+
+  filterForm = new FormGroup({
+    enabled: new FormControl(false),
+    colors: new FormControl({ value: Object.values(Color), disabled: true }),
+    shapes: new FormControl({ value: Object.values(Shape), disabled: true }),
+  })
+  colorList: string[] = Object.values(Color);
+  shapeList: string[] = Object.values(Shape);
 
   constructor(private streamService: StreamService) { }
 
   ngOnInit(): void {
     this.mapCtx = MapComponent.initCanvasCtx(this.mapCanvas)
     this.polygonCtx = MapComponent.initCanvasCtx(this.mapCanvas)
+
     this.updateZoomStream()
   }
 
@@ -76,6 +87,7 @@ export class MapComponent implements OnInit, OnDestroy {
       this.polygonPoints = new Array
       this.resetAndDrawCanvas()
       this.updateZoomStream()
+      return
     }
 
     var polygon = this.polygonPoints.map((p: Point) => [p.longitude, p.latitude])
@@ -94,13 +106,11 @@ export class MapComponent implements OnInit, OnDestroy {
       Point.distance(new Point(this.relativeX(event.x), this.relativeY(event.y)),
         new Point(Entity.longToCanvasX(this.polygonPoints[0].longitude, this.zoom, this.MAP_WIDTH),
           Entity.latToCanvasY(this.polygonPoints[0].latitude, this.zoom, this.MAP_HEIGHT))) < this.CLOSE_POLYGON_DISTANCE) {
-            this.messageToUser = `Sent polygon to server`
-            this.polygonPoints.pop()
-            this.polygonPoints.push(this.polygonPoints[0])
-            this.entities = new Map
-            this.messages = new Queue
-            this.drawStream(this.streamService.startPolygonStream(this.polygonPoints))
-            this.isPolygonQueryActive = true
+      this.messageToUser = `Sent polygon to server`
+      this.polygonPoints.pop()
+      this.polygonPoints.push(this.polygonPoints[0])
+      this.isPolygonQueryActive = true
+      this.updatePolygonStream()
     }
 
     this.resetAndDrawCanvas()
@@ -160,7 +170,29 @@ export class MapComponent implements OnInit, OnDestroy {
     }
     this.entities = new Map
     this.messages = new Queue
-    this.drawStream(this.streamService.startZoomStream(this.zoom))
+    let colorsFilter: Color[] | undefined = undefined
+    let shapesFilter: Shape[] | undefined = undefined
+    if (this.filterForm.controls.colors.enabled) {
+      colorsFilter = this.filterForm.controls.colors.value === null ? undefined : this.filterForm.controls.colors.value
+    }
+    if (this.filterForm.controls.shapes.enabled) {
+      shapesFilter = this.filterForm.controls.shapes.value === null ? undefined : this.filterForm.controls.shapes.value
+    }
+    this.drawStream(this.streamService.startZoomStream(this.zoom, colorsFilter, shapesFilter))
+  }
+
+  updatePolygonStream(): void {
+    this.entities = new Map
+    this.messages = new Queue
+    let colorsFilter: Color[] | undefined = undefined
+    let shapesFilter: Shape[] | undefined = undefined
+    if (this.filterForm.controls.colors.enabled) {
+      colorsFilter = this.filterForm.controls.colors.value === null ? undefined : this.filterForm.controls.colors.value
+    }
+    if (this.filterForm.controls.shapes.enabled) {
+      shapesFilter = this.filterForm.controls.shapes.value === null ? undefined : this.filterForm.controls.shapes.value
+    }
+    this.drawStream(this.streamService.startPolygonStream(this.polygonPoints, colorsFilter, shapesFilter))
   }
 
   drawStream(messagePublisher: Subject<Message>) {
@@ -180,6 +212,8 @@ export class MapComponent implements OnInit, OnDestroy {
         }
         this.resetAndDrawCanvas()
       },
+      error: (err: any) => console.log(`got error ${err} while sending entities`),
+      complete: () => this.streamService.close()
     });
   }
 
@@ -207,6 +241,31 @@ export class MapComponent implements OnInit, OnDestroy {
       this.mapCtx.strokeStyle = "#000000";
       this.polygonCtx.stroke()
 
+    }
+  }
+
+  toggleFilters() {
+    if (this.filterForm.controls.enabled.value === false) {
+      this.filterForm.controls.colors.disable()
+      this.filterForm.controls.shapes.disable()
+    } else {
+      this.filterForm.controls.colors.enable()
+      this.filterForm.controls.shapes.enable()
+    }
+    if (this.isPolygonQueryActive) {
+      this.updatePolygonStream()
+    } else {
+      this.updateZoomStream()
+    }
+  }
+
+  updateFilters() {
+    if (this.filterForm.controls.enabled.value === true) {
+      if (this.isPolygonQueryActive) {
+        this.updatePolygonStream()
+      } else {
+        this.updateZoomStream()
+      }
     }
   }
 

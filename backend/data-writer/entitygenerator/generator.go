@@ -18,8 +18,8 @@ var (
 )
 
 const (
-	_MAX_NUMBER_OF_ENTITIES int     = 1000 // number of entities
-	_MAX_UPDATE_RATE        int     = 100  // updates per second per entity
+	_MAX_NUMBER_OF_ENTITIES int     = 10000 // number of entities
+	_MAX_UPDATE_RATE        int     = 100   // updates per second per entity
 	_MIN_LONGITUDE          float64 = -180.0
 	_MIN_LONG_VEL           float64 = -1.000
 	_MAX_LONGITUDE          float64 = 180.0

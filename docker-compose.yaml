@@ -1,17 +1,16 @@
-version: "3.9"
+version: "3.3"
 services:
   web:
     image: my-app:0.1
     restart: unless-stopped
     ports:
       - "4200:8080"
-      - "8081:80"
     depends_on:
       - server
     deploy:
       resources:
         limits:
-          cpus: 0.50
+          cpus: "0.50"
           memory: 512M
         reservations:
           memory: 128M
@@ -25,7 +24,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: 0.50
+          cpus: "0.50"
           memory: 512M
         reservations:
           memory: 128M
@@ -35,11 +34,11 @@ services:
       - db
     restart: unless-stopped
     ports:
-    - "8083:8080"
+    - "8083:8079"
     deploy:
       resources:
         limits:
-          cpus: 0.50
+          cpus: "0.50"
           memory: 512M
         reservations:
           memory: 128M
@@ -52,7 +51,7 @@ services:
     # deploy:
       # resources:
       #   limits:
-      #     cpus: 0.50
+      #     cpus: "0.50"
       #     memory: 512M
       #   reservations:
       #     memory: 128M

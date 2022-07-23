@@ -2,21 +2,40 @@
 
 <div style="width: 100%; overflow: hidden;">
     <div style="width: 1020px; float: left;">
-        <canvas #mapCanvas
-        (contextmenu)="rightclick($event)"
-         (mousedown)="startDrag($event)"
-            (mousemove)="moveDrag($event)"
-            (mouseup)="stopDrag($event)"
-            (wheel)="changeZoom($event)"
+        <canvas #mapCanvas (contextmenu)="rightclick($event)" (mousedown)="startDrag($event)"
+            (mousemove)="moveDrag($event)" (mouseup)="stopDrag($event)" (wheel)="changeZoom($event)"
             width="{{ this.MAP_WIDTH }}" height="{{ this.MAP_HEIGHT }}">
         </canvas>
     </div>
 
-    <div style="margin-left: 1020px;">
+    <div style="margin-left: 1020px; min-height: 350px;">
         <mat-card>
-            <p *ngFor="let m of messages; index as i">${{ m.op }} {{ m.entity.longitude.toFixed(2) }} {{
+            <p *ngFor="let m of messages">${{ m.op }} {{ m.entity.longitude.toFixed(2) }} {{
                 m.entity.latitude.toFixed(2) }}</p>
         </mat-card>
+    </div>
+
+    <div style="margin-left: 1020px; margin-top: 10px;">
+        <p>
+            <mat-checkbox (ngModelChange)="toggleFilters()" [formControl]="filterForm.controls.enabled">Enable filters
+            </mat-checkbox>
+        </p>
+        <p>
+            <mat-form-field style="min-width: 50%;">
+                <mat-label>Color</mat-label>
+                <mat-select (ngModelChange)="updateFilters()" [formControl]="filterForm.controls.colors" multiple>
+                    <mat-option *ngFor="let color of colorList" [value]="color">{{color.toString()}}</mat-option>
+                </mat-select>
+            </mat-form-field>
+        </p>
+        <p>
+            <mat-form-field style="min-width: 50%;">
+                <mat-label>Shape</mat-label>
+                <mat-select (ngModelChange)="updateFilters()" [formControl]="filterForm.controls.shapes" multiple>
+                    <mat-option *ngFor="let shape of shapeList" [value]="shape">{{shape.toString()}}</mat-option>
+                </mat-select>
+            </mat-form-field>
+        </p>
     </div>
 </div>
 

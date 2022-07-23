@@ -11,7 +11,7 @@ func Init() {
 	http.HandleFunc("/entities", setNumberOfEntities)
 	http.HandleFunc("/rate", setUpdateRate)
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":8079", nil))
 }
 
 func setNumberOfEntities(rw http.ResponseWriter, r *http.Request) {
