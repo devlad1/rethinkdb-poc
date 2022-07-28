@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"sync"
 	"time"
 	"writer/rdbwriter"
 
@@ -15,6 +16,8 @@ import (
 var (
 	numberOfEntities = 200
 	updateRate       = 3
+	isRunning        = false
+	lock             sync.Mutex
 )
 
 const (
@@ -54,22 +57,33 @@ func SetUpdateRate(newRate int) {
 	updateRate = newRate
 }
 
-func Start() {
-	for i := 0; i < int(numberOfEntities); i++ {
-		generateRandomEntity()
+func StartRandom() {
+	if isRunning {
+		log.Print("Tried to start when already running")
+		return
 	}
 
-	for {
+	lock.Lock()
+	isRunning = true
+	lock.Unlock()
+
+	log.Print("Starting random generation")
+
+	for i := 0; i < int(numberOfEntities); i++ {
+		createRandomWorldEntity()
+	}
+
+	for isRunning {
 		if len(entities) > int(float32(numberOfEntities)*1.1) {
 			index := rand.Intn(len(entities))
 			deleteEntity(index)
 		} else if len(entities) < int(float32(numberOfEntities)*0.9) {
-			generateRandomEntity()
+			createRandomWorldEntity()
 		} else {
 			actionSeed := rand.Intn(10)
 			switch actionSeed {
 			case 0:
-				generateRandomEntity()
+				createRandomWorldEntity()
 			case 1:
 				index := rand.Intn(len(entities))
 				deleteEntity(index)
@@ -82,12 +96,56 @@ func Start() {
 	}
 }
 
-func generateRandomEntity() {
+func StopRandom() {
+	lock.Lock()
+	defer lock.Unlock()
+	isRunning = false
+
+	log.Print("Stopping random generation")
+}
+
+func SendNEntities(zoom schemas.Zoom, numberOfEntities int) {
+	lock.Lock()
+	defer lock.Unlock()
+
+	if isRunning {
+		log.Print("Can't send n entities while running random")
+		return
+	}
+
+	log.Printf("Sending %d entities", numberOfEntities)
+
+	entitiesToSend := make([]*schemas.Entity, numberOfEntities)
+	for i := range entitiesToSend {
+		entitiesToSend[i] = generateRandomEntity(zoom)
+	}
+
+	createEntities(entitiesToSend...)
+}
+
+func ClearAll() {
+	lock.Lock()
+	defer lock.Unlock()
+
+	if isRunning {
+		log.Print("Can't clear all whily random generation is running")
+		return
+	}
+
+	log.Print("Clearing all...")
+	if err := rdbwriter.DeleteAll(); err != nil {
+		log.Fatal(err)
+	}
+
+	entities = make([]*schemas.Entity, 0)
+}
+
+func generateRandomEntity(zoom schemas.Zoom) *schemas.Entity {
 	shape := getRandomShape()
 	color := getRandomColor()
 	name := fmt.Sprintf("%s%s%d", shape, color, currId)
-	longitude := float64(getRandomXPos())
-	latitude := float64(getRandomYPos())
+	longitude := float64(getRandomXPos(zoom))
+	latitude := float64(getRandomYPos(zoom))
 
 	newEntity := &schemas.Entity{
 		Id:        currId,
@@ -101,14 +159,11 @@ func generateRandomEntity() {
 		Location:  r.Point(longitude, latitude),
 	}
 
-	fixValuesIfNeeded(newEntity)
-
-	entities = append(entities, newEntity)
 	currId++
 
-	if err := rdbwriter.WriteEntity(newEntity); err != nil {
-		log.Fatal(err)
-	}
+	fixValuesIfNeeded(newEntity)
+
+	return newEntity
 }
 
 func updateExistingEntity(entity *schemas.Entity) {
@@ -120,7 +175,25 @@ func updateExistingEntity(entity *schemas.Entity) {
 
 	fixValuesIfNeeded(entity)
 
-	if err := rdbwriter.WriteEntity(entity); err != nil {
+	updateEntity(entity)
+}
+
+func createRandomWorldEntity() {
+	entity := generateRandomEntity(schemas.Zoom{ButtomRight: schemas.Point{Longitude: _MAX_LONGITUDE, Latitude: -_MAX_LATITUDE}, TopLeft: schemas.Point{Longitude: -_MAX_LONGITUDE, Latitude: _MAX_LATITUDE}})
+
+	createEntities(entity)
+}
+
+func createEntities(newEntities ...*schemas.Entity) {
+	entities = append(entities, newEntities...)
+
+	if err := rdbwriter.WriteEntity(newEntities...); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func updateEntity(entity *schemas.Entity) {
+	if err := rdbwriter.UpdateEntity(entity); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -155,12 +228,12 @@ func fixValuesIfNeeded(entity *schemas.Entity) {
 	entity.Location = r.Point(entity.Longitude, entity.Latitude)
 }
 
-func getRandomXPos() int {
-	return rand.Intn(int(_MAX_LONGITUDE-_MIN_LONGITUDE)) + int(_MIN_LONGITUDE)
+func getRandomXPos(zoom schemas.Zoom) int {
+	return rand.Intn(int(zoom.ButtomRight.Longitude-zoom.TopLeft.Longitude)) + int(zoom.TopLeft.Longitude)
 }
 
-func getRandomYPos() int {
-	return rand.Intn(int(_MAX_LATITUDE-_MIN_LATITUDE)) + int(_MIN_LATITUDE)
+func getRandomYPos(zoom schemas.Zoom) int {
+	return rand.Intn(int(zoom.TopLeft.Latitude-zoom.ButtomRight.Latitude)) + int(zoom.ButtomRight.Latitude)
 }
 
 func getRandomXVel() float64 {

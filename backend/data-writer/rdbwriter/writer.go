@@ -31,24 +31,36 @@ func Init(parentCtx context.Context) {
 	initIndex()
 }
 
-func WriteEntity(entity *schemas.Entity) error {
-	err := r.
+func WriteEntity(entities ...*schemas.Entity) error {
+	return r.
 		DB(dbName).
 		Table(tableName).
-		Insert(entity, r.InsertOpts{
-			Conflict: func(_, _, newDoc r.Term) interface{} {
-				return newDoc
-			},
-		}).
+		Insert(entities).
 		Exec(s, r.ExecOpts{Context: ctx, NoReply: true})
-	return err
+}
+
+func UpdateEntity(entity *schemas.Entity) error {
+	return r.
+		DB(dbName).
+		Table(tableName).
+		Get(entity.Id).
+		Update(entity).
+		Exec(s, r.ExecOpts{Context: ctx, NoReply: true})
 }
 
 func DeleteEntity(id int) error {
-	err := r.
+	return r.
 		DB(dbName).
 		Table(tableName).
 		Get(id).
+		Delete().
+		Exec(s, r.ExecOpts{Context: ctx, NoReply: true})
+}
+
+func DeleteAll() error {
+	err := r.
+		DB(dbName).
+		Table(tableName).
 		Delete().
 		Exec(s, r.ExecOpts{Context: ctx, NoReply: true})
 	return err
