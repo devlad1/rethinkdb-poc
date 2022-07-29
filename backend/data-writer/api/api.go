@@ -8,25 +8,38 @@ import (
 	"schemas"
 	"strconv"
 	"writer/entitygenerator"
+
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 )
 
 func Init() {
-	http.HandleFunc("/start", startRandomGenerating)
-	http.HandleFunc("/stop", stopRandomGenerating)
-	http.HandleFunc("/send", sendN)
-	http.HandleFunc("/clearall", clearAll)
-	http.HandleFunc("/entities", setNumberOfEntities)
-	http.HandleFunc("/rate", setUpdateRate)
+	router := mux.NewRouter()
+	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With"})
+	originsOk := handlers.AllowedOrigins([]string{"*"})
+	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
 
-	log.Fatal(http.ListenAndServe(":8079", nil))
+	router.HandleFunc("/start", startRandomGenerating)
+	router.HandleFunc("/stop", stopRandomGenerating)
+	router.HandleFunc("/entities", setNumberOfEntities)
+	router.HandleFunc("/rate", setUpdateRate)
+	router.HandleFunc("/send", sendN)
+	router.HandleFunc("/clearall", clearAll)
+
+	log.Fatal(http.ListenAndServe(":8079", handlers.CORS(originsOk, headersOk, methodsOk)(router)))
 }
 
 func startRandomGenerating(rw http.ResponseWriter, r *http.Request) {
 	go entitygenerator.StartRandom()
+	rw.WriteHeader(http.StatusOK)
+	rw.Write(newResponse("200 - accepted"))
 }
 
 func stopRandomGenerating(rw http.ResponseWriter, r *http.Request) {
-	entitygenerator.StopRandom()
+	err := entitygenerator.StopRandom()
+	if err != nil {
+		logAndSetError(err, rw)
+	}
 }
 
 func sendN(rw http.ResponseWriter, r *http.Request) {
@@ -34,48 +47,70 @@ func sendN(rw http.ResponseWriter, r *http.Request) {
 
 	numberOfEntities, err := strconv.Atoi(queryValues.Get("n"))
 	if err != nil {
-		log.Print(err)
+		logAndSetError(err, rw)
 		return
 	}
 
 	rawZoom, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Print(err)
+		logAndSetError(err, rw)
 		return
 	}
 
 	var zoom schemas.Zoom
 	err = json.Unmarshal([]byte(rawZoom), &zoom)
 	if err != nil {
-		log.Print(err)
+		logAndSetError(err, rw)
 		return
 	}
 
-	entitygenerator.SendNEntities(zoom, numberOfEntities)
+	err = entitygenerator.SendNEntities(zoom, numberOfEntities)
+	if err != nil {
+		logAndSetError(err, rw)
+		return
+	}
 }
 
 func clearAll(rw http.ResponseWriter, r *http.Request) {
-	entitygenerator.ClearAll()
+	err := entitygenerator.ClearAll()
+	if err != nil {
+		logAndSetError(err, rw)
+		return
+	}
 }
 
 func setNumberOfEntities(rw http.ResponseWriter, r *http.Request) {
 	queryValues := r.URL.Query()
 	newNumber, err := strconv.Atoi(queryValues.Get("n"))
 	if err != nil {
-		log.Print(err)
+		logAndSetError(err, rw)
 		return
 	}
 
-	entitygenerator.SetNumberOfEntities(newNumber)
+	err = entitygenerator.SetNumberOfEntities(newNumber)
+	if err != nil {
+		logAndSetError(err, rw)
+		return
+	}
 }
 
 func setUpdateRate(rw http.ResponseWriter, r *http.Request) {
 	queryValues := r.URL.Query()
 	newRate, err := strconv.Atoi(queryValues.Get("n"))
 	if err != nil {
-		log.Print(err)
+		logAndSetError(err, rw)
 		return
 	}
 
-	entitygenerator.SetUpdateRate(newRate)
+	err = entitygenerator.SetUpdateRate(newRate)
+	if err != nil {
+		logAndSetError(err, rw)
+		return
+	}
+}
+
+func logAndSetError(err error, rw http.ResponseWriter) {
+	log.Print(err)
+	rw.WriteHeader(http.StatusBadRequest)
+	rw.Write(newResponse(err.Error()))
 }

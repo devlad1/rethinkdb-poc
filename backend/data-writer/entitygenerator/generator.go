@@ -21,8 +21,8 @@ var (
 )
 
 const (
-	_MAX_NUMBER_OF_ENTITIES int     = 100000 // number of entities
-	_MAX_UPDATE_RATE        int     = 1000   // updates per second per entity
+	_MAX_NUMBER_OF_ENTITIES int     = 50000 // number of entities
+	_MAX_UPDATE_RATE        int     = 100   // updates per second per entity
 	_MIN_LONGITUDE          float64 = -180.0
 	_MIN_LONG_VEL           float64 = -1.000
 	_MAX_LONGITUDE          float64 = 180.0
@@ -39,27 +39,37 @@ var (
 	currId   int64             = 0
 )
 
-func SetNumberOfEntities(newNumberOfEntities int) {
+func SetNumberOfEntities(newNumberOfEntities int) error {
 	if newNumberOfEntities > _MAX_NUMBER_OF_ENTITIES {
-		log.Printf("Tried to set number of entities to %d, when max is %d", newNumberOfEntities, _MAX_NUMBER_OF_ENTITIES)
-		return
+		return fmt.Errorf("tried to set number of entities to %d, when max is %d", newNumberOfEntities, _MAX_NUMBER_OF_ENTITIES)
 	}
+
+	if newNumberOfEntities == 0 {
+		return fmt.Errorf("tried to set number of entities to 0")
+	}
+
 	log.Printf("Set number of entities to %d", newNumberOfEntities)
 	numberOfEntities = newNumberOfEntities
+	return nil
 }
 
-func SetUpdateRate(newRate int) {
+func SetUpdateRate(newRate int) error {
 	if newRate > _MAX_NUMBER_OF_ENTITIES {
-		log.Printf("Tried to set update rate to %d, when max is %d", newRate, _MAX_UPDATE_RATE)
-		return
+		return fmt.Errorf("tried to set update rate to %d, when max is %d", newRate, _MAX_UPDATE_RATE)
 	}
+
+	if newRate == 0 {
+		return fmt.Errorf("tried to set update rate to 0")
+	}
+
 	log.Printf("Set update rate to %d", newRate)
 	updateRate = newRate
+	return nil
 }
 
 func StartRandom() {
 	if isRunning {
-		log.Print("Tried to start when already running")
+		log.Print("tried to start when already running")
 		return
 	}
 
@@ -67,7 +77,7 @@ func StartRandom() {
 	isRunning = true
 	lock.Unlock()
 
-	log.Print("Starting random generation")
+	log.Print("starting random generation")
 
 	for i := 0; i < int(numberOfEntities); i++ {
 		createRandomWorldEntity()
@@ -85,35 +95,48 @@ func StartRandom() {
 			case 0:
 				createRandomWorldEntity()
 			case 1:
-				index := rand.Intn(len(entities))
-				deleteEntity(index)
+				if len(entities) > 0 {
+					index := rand.Intn(len(entities))
+					deleteEntity(index)
+				}
 			default:
-				index := rand.Intn(len(entities))
-				updateExistingEntity(entities[index])
+				if len(entities) > 0 {
+					index := rand.Intn(len(entities))
+					updateExistingEntity(entities[index])
+				}
 			}
 		}
 		time.Sleep(time.Second / time.Duration(updateRate*numberOfEntities))
 	}
 }
 
-func StopRandom() {
+func StopRandom() error {
 	lock.Lock()
 	defer lock.Unlock()
+
+	if !isRunning {
+		return fmt.Errorf("tried to stop random generation when not running")
+	}
+
 	isRunning = false
 
-	log.Print("Stopping random generation")
+	log.Print("stopping random generation")
+	return nil
 }
 
-func SendNEntities(zoom schemas.Zoom, numberOfEntities int) {
+func SendNEntities(zoom schemas.Zoom, numberOfEntities int) error {
 	lock.Lock()
 	defer lock.Unlock()
 
 	if isRunning {
-		log.Print("Can't send n entities while running random")
-		return
+		return fmt.Errorf("can't send n entities while running random")
 	}
 
-	log.Printf("Sending %d entities", numberOfEntities)
+	if numberOfEntities > _MAX_NUMBER_OF_ENTITIES {
+		return fmt.Errorf("can't send %d entities because it's greater than the maximum %d", numberOfEntities, _MAX_NUMBER_OF_ENTITIES)
+	}
+
+	log.Printf("sending %d entities", numberOfEntities)
 
 	entitiesToSend := make([]*schemas.Entity, numberOfEntities)
 	for i := range entitiesToSend {
@@ -121,23 +144,24 @@ func SendNEntities(zoom schemas.Zoom, numberOfEntities int) {
 	}
 
 	createEntities(entitiesToSend...)
+	return nil
 }
 
-func ClearAll() {
+func ClearAll() error {
 	lock.Lock()
 	defer lock.Unlock()
 
 	if isRunning {
-		log.Print("Can't clear all whily random generation is running")
-		return
+		return fmt.Errorf("can't clear all while random generation is running")
 	}
 
-	log.Print("Clearing all...")
+	log.Print("clearing all...")
 	if err := rdbwriter.DeleteAll(); err != nil {
 		log.Fatal(err)
 	}
 
 	entities = make([]*schemas.Entity, 0)
+	return nil
 }
 
 func generateRandomEntity(zoom schemas.Zoom) *schemas.Entity {

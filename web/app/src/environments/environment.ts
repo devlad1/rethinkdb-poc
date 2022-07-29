@@ -5,6 +5,7 @@
 export const environment = {
   production: false,
   serverHost: "localhost:8082",
+  generatorHost: "localhost:8079",
 };
 
 /*

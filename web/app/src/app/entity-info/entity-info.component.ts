@@ -2,12 +2,11 @@ import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroupDirective, NgForm, Validators } from '@angular/forms';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { BehaviorSubject, map, Observable, Subject, Subscriber } from 'rxjs';
-import { Entity } from '../map/entities/entity';
 import { Message, Op } from '../map/stream_request';
 import { EntityInfoStreamService } from './entity-info-stream.service';
 import { EntityState } from './entity-state';
 
-export class MyErrorStateMatcher implements ErrorStateMatcher {
+export class EntityInfoStateMatcher implements ErrorStateMatcher {
   isErrorState(control: FormControl | null, form: FormGroupDirective | NgForm | null): boolean {
     const isSubmitted = form && form.submitted;
     return !!(control && control.invalid && (control.dirty || control.touched || isSubmitted));
@@ -22,7 +21,7 @@ export class MyErrorStateMatcher implements ErrorStateMatcher {
 export class EntityInfoComponent implements OnInit {
 
   entityFormControl = new FormControl('', [Validators.pattern(new RegExp("^[0-9]+$"))]);
-  matcher = new MyErrorStateMatcher();
+  matcher = new EntityInfoStateMatcher();
 
   displayedColumns: string[] = ['id', 'name', 'longitude', 'latitude', 'longV', 'latV', 'shape', 'color', 'closeButton'];
 

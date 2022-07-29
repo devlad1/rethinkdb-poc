@@ -11,7 +11,11 @@ import { MatTableModule } from '@angular/material/table';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import {FormsModule, ReactiveFormsModule} from '@angular/forms';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialogModule } from '@angular/material/dialog';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { GeneratorComponent } from './generator/generator.component';
+import { HttpClientModule } from '@angular/common/http';
 
 
 @NgModule({
@@ -19,6 +23,7 @@ import {FormsModule, ReactiveFormsModule} from '@angular/forms';
     AppComponent,
     MapComponent,
     EntityInfoComponent,
+    GeneratorComponent,
   ],
   imports: [
     BrowserModule,
@@ -26,12 +31,15 @@ import {FormsModule, ReactiveFormsModule} from '@angular/forms';
     BrowserAnimationsModule,
     FormsModule,
     ReactiveFormsModule,
+    HttpClientModule,
     MatButtonModule,
     MatCardModule,
     MatTableModule,
     MatInputModule,
     MatSelectModule,
     MatCheckboxModule,
+    MatTooltipModule,
+    MatDialogModule
   ],
   providers: [],
   bootstrap: [AppComponent]

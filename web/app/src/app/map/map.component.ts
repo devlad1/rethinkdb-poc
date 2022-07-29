@@ -1,13 +1,13 @@
 import { Component, ViewChild, ElementRef, OnInit, OnDestroy } from '@angular/core';
 import { Entity } from './entities/entity';
 import { StreamService } from './stream.service';
-import { Message, Op, Point, Zoom } from './stream_request';
-import { Queue } from 'queue-typescript';
+import { Message, Op, Point } from './stream_request';
 import * as isects from '2d-polygon-self-intersections';
 import { Subject } from 'rxjs/internal/Subject';
 import { FormControl, FormGroup } from '@angular/forms';
 import { Color } from './entities/color';
 import { Shape } from './entities/shape';
+import { ZoomService } from './zoom.service';
 
 @Component({
   selector: 'app-map',
@@ -15,18 +15,11 @@ import { Shape } from './entities/shape';
   styleUrls: ['./map.component.css'],
 })
 export class MapComponent implements OnInit, OnDestroy {
-  readonly MAP_WIDTH = 1000
-  readonly MAP_HEIGHT = 500
+
   readonly CLOSE_POLYGON_DISTANCE = 15
 
   @ViewChild('mapCanvas', { static: true })
   mapCanvas!: ElementRef<HTMLCanvasElement>;
-
-  readonly initialTopLat = 3
-  readonly initialLeftLong = 0
-  readonly initialButtomLat = 0
-  readonly initialRightLong = (this.MAP_WIDTH / this.MAP_HEIGHT) * (this.initialTopLat - this.initialButtomLat) - this.initialLeftLong
-  zoom: Zoom = new Zoom(new Point(this.initialLeftLong, this.initialTopLat), new Point(this.initialRightLong, this.initialButtomLat))
 
   private mapCtx!: CanvasRenderingContext2D;
   private polygonCtx!: CanvasRenderingContext2D;
@@ -36,7 +29,6 @@ export class MapComponent implements OnInit, OnDestroy {
   private dragStartX: number = 0;
   private dragStartY: number = 0;
 
-  messages: Queue<Message> = new Queue
   polygonPoints: Array<Point> = new Array
   messageToUser: string = ""
 
@@ -48,7 +40,7 @@ export class MapComponent implements OnInit, OnDestroy {
   colorList: string[] = Object.values(Color);
   shapeList: string[] = Object.values(Shape);
 
-  constructor(private streamService: StreamService) { }
+  constructor(private streamService: StreamService, public zoomService: ZoomService) { }
 
   ngOnInit(): void {
     this.mapCtx = MapComponent.initCanvasCtx(this.mapCanvas)
@@ -72,12 +64,12 @@ export class MapComponent implements OnInit, OnDestroy {
   }
 
   xToLong(x: number): number {
-    let result = (x * this.zoom.width / this.MAP_WIDTH) + this.zoom.topLeft.longitude
+    let result = (x * this.zoomService.currentZoom.width / this.zoomService.MAP_WIDTH) + this.zoomService.currentZoom.topLeft.longitude
     return result
   }
 
   yToLat(y: number): number {
-    let result = -((y * this.zoom.height / this.MAP_HEIGHT) - this.zoom.topLeft.latitude)
+    let result = -((y * this.zoomService.currentZoom.height / this.zoomService.MAP_HEIGHT) - this.zoomService.currentZoom.topLeft.latitude)
     return result
   }
 
@@ -105,8 +97,8 @@ export class MapComponent implements OnInit, OnDestroy {
 
     if (this.polygonPoints.length > 2 &&
       Point.distance(new Point(this.relativeX(event.x), this.relativeY(event.y)),
-        new Point(Entity.longToCanvasX(this.polygonPoints[0].longitude, this.zoom, this.MAP_WIDTH),
-          Entity.latToCanvasY(this.polygonPoints[0].latitude, this.zoom, this.MAP_HEIGHT))) < this.CLOSE_POLYGON_DISTANCE) {
+        new Point(Entity.longToCanvasX(this.polygonPoints[0].longitude, this.zoomService.currentZoom, this.zoomService.MAP_WIDTH),
+          Entity.latToCanvasY(this.polygonPoints[0].latitude, this.zoomService.currentZoom, this.zoomService.MAP_HEIGHT))) < this.CLOSE_POLYGON_DISTANCE) {
       this.messageToUser = `Sent polygon to server`
       this.polygonPoints.pop()
       this.polygonPoints.push(this.polygonPoints[0])
@@ -129,8 +121,8 @@ export class MapComponent implements OnInit, OnDestroy {
       return
     }
     if (this.isDragging) {
-      this.zoom.addLong(-(this.relativeX(event.x) - this.dragStartX) * (this.zoom.width / this.MAP_WIDTH))
-      this.zoom.addLat((this.relativeY(event.y) - this.dragStartY) * (this.zoom.height / this.MAP_HEIGHT))
+      this.zoomService.addXPixels(this.relativeX(event.x) - this.dragStartX)
+      this.zoomService.addYPixels(this.relativeY(event.y) - this.dragStartY)
       this.dragStartX = this.relativeX(event.x);
       this.dragStartY = this.relativeY(event.y);
     }
@@ -145,18 +137,7 @@ export class MapComponent implements OnInit, OnDestroy {
   }
 
   changeZoom(event: WheelEvent): void {
-    let yDiff = -Math.sign(event.deltaY) * this.zoom.height / 10
-    let xDiff = yDiff * (this.MAP_WIDTH / this.MAP_HEIGHT)
-    let newTopLeft: Point = new Point(this.zoom.topLeft.longitude + xDiff, this.zoom.topLeft.latitude - yDiff)
-    let newButtomRight: Point = new Point(this.zoom.buttomRight.longitude - xDiff, this.zoom.buttomRight.latitude + xDiff)
-    if (newTopLeft.longitude < Zoom.MAX_LONG && newTopLeft.longitude > -Zoom.MAX_LONG &&
-      newTopLeft.latitude < Zoom.MAX_LAT && newTopLeft.latitude > -Zoom.MAX_LAT &&
-      newButtomRight.longitude < Zoom.MAX_LONG && newButtomRight.longitude > -Zoom.MAX_LONG &&
-      newButtomRight.latitude < Zoom.MAX_LAT && newButtomRight.latitude > -Zoom.MAX_LAT &&
-      Point.distance(newTopLeft, newButtomRight) < Zoom.MAX_DIAG_LEN &&
-      Point.distance(newTopLeft, newButtomRight) > Zoom.MIN_DIAG_LEN) {
-      this.zoom.topLeft = newTopLeft
-      this.zoom.buttomRight = newButtomRight
+    if (this.zoomService.changeZoom(Math.sign(event.deltaY))) {
       this.updateZoomStream()
     }
   }
@@ -166,7 +147,6 @@ export class MapComponent implements OnInit, OnDestroy {
       return
     }
     this.entities = new Map
-    this.messages = new Queue
     let colorsFilter: Color[] | undefined = undefined
     let shapesFilter: Shape[] | undefined = undefined
     if (this.filterForm.controls.colors.enabled) {
@@ -175,12 +155,11 @@ export class MapComponent implements OnInit, OnDestroy {
     if (this.filterForm.controls.shapes.enabled) {
       shapesFilter = this.filterForm.controls.shapes.value === null ? undefined : this.filterForm.controls.shapes.value
     }
-    this.drawStream(this.streamService.startZoomStream(this.zoom, colorsFilter, shapesFilter))
+    this.drawStream(this.streamService.startZoomStream(this.zoomService.currentZoom, colorsFilter, shapesFilter))
   }
 
   updatePolygonStream(): void {
     this.entities = new Map
-    this.messages = new Queue
     let colorsFilter: Color[] | undefined = undefined
     let shapesFilter: Shape[] | undefined = undefined
     if (this.filterForm.controls.colors.enabled) {
@@ -195,10 +174,6 @@ export class MapComponent implements OnInit, OnDestroy {
   drawStream(messagePublisher: Subject<Message>) {
     messagePublisher.subscribe({
       next: (m: Message) => {
-        this.messages.enqueue(m)
-        if (this.messages.length > 10) {
-          this.messages.dequeue()
-        }
         switch (m.op) {
           case Op.CREATE:
             this.entities.set(m.entity.id, m.entity); break
@@ -214,19 +189,19 @@ export class MapComponent implements OnInit, OnDestroy {
   }
 
   resetAndDrawCanvas() {
-    this.mapCtx.clearRect(0, 0, this.MAP_WIDTH, this.MAP_HEIGHT)
+    this.mapCtx.clearRect(0, 0, this.zoomService.MAP_WIDTH, this.zoomService.MAP_HEIGHT)
     this.entities.forEach((entity: Entity, _: number) => {
-      Entity.draw(entity, this.zoom, this.mapCtx, this.MAP_WIDTH, this.MAP_HEIGHT);
+      Entity.draw(entity, this.zoomService.currentZoom, this.mapCtx, this.zoomService.MAP_WIDTH, this.zoomService.MAP_HEIGHT);
     })
     if (this.polygonPoints.length > 0) {
       this.polygonCtx.beginPath();
-      let canvasX = Entity.longToCanvasX(this.polygonPoints[0].longitude, this.zoom, this.MAP_WIDTH)
-      let canvasY = Entity.latToCanvasY(this.polygonPoints[0].latitude, this.zoom, this.MAP_HEIGHT)
+      let canvasX = Entity.longToCanvasX(this.polygonPoints[0].longitude, this.zoomService.currentZoom, this.zoomService.MAP_WIDTH)
+      let canvasY = Entity.latToCanvasY(this.polygonPoints[0].latitude, this.zoomService.currentZoom, this.zoomService.MAP_HEIGHT)
       this.polygonCtx.moveTo(canvasX, canvasY)
       for (let p of this.polygonPoints) {
 
-        canvasX = Entity.longToCanvasX(p.longitude, this.zoom, this.MAP_WIDTH)
-        canvasY = Entity.latToCanvasY(p.latitude, this.zoom, this.MAP_HEIGHT)
+        canvasX = Entity.longToCanvasX(p.longitude, this.zoomService.currentZoom, this.zoomService.MAP_WIDTH)
+        canvasY = Entity.latToCanvasY(p.latitude, this.zoomService.currentZoom, this.zoomService.MAP_HEIGHT)
 
         this.polygonCtx.lineTo(canvasX, canvasY)
         this.polygonCtx.moveTo(canvasX, canvasY)

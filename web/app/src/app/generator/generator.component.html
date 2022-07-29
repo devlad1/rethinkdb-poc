@@ -1,0 +1,29 @@
+<form class="form-container">
+    <p>Random Generator</p>
+    <mat-form-field appearance="fill">
+        <mat-label>Number of entities</mat-label>
+        <input matInput (keydown.enter)="generateRandom()" [formControl]="randomGenerator.controls.numGenerated"
+            [errorStateMatcher]="matcher" placeholder="">
+    </mat-form-field>
+    <mat-form-field appearance="fill">
+        <mat-label>Update rate per entity</mat-label>
+        <input matInput (keydown.enter)="generateRandom()" [formControl]="randomGenerator.controls.rate"
+            [errorStateMatcher]="matcher" placeholder="">
+    </mat-form-field>
+    <button mat-button (click)="generateRandom()" class="add-button" [disabled]="!randomGenerator.valid" matTooltip="Enter valid positive integers">Generate</button>
+    <button mat-button (click)="stopGenerating()" class="add-button">Stop</button>
+</form>
+
+<form class="form-container">
+    <p>Send in zoom</p>
+    <mat-form-field appearance="fill">
+        <mat-label>Number of entities to send</mat-label>
+        <input matInput (keydown.enter)="sendEntities()" [formControl]="entitySender.controls.numSent"
+        [errorStateMatcher]="matcher" placeholder="">
+    </mat-form-field>
+    <button mat-button (click)="sendEntities()" class="add-button">Send</button>
+</form>
+
+<form>
+    <button mat-button (click)="clearAll()" class="add-button">Clear All</button>
+</form>

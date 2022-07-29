@@ -6,8 +6,12 @@ require gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
 
 require schemas v0.0.0
 
+require github.com/felixge/httpsnoop v1.0.1 // indirect
+
 require (
 	github.com/golang/protobuf v1.3.4 // indirect
+	github.com/gorilla/handlers v1.5.1
+	github.com/gorilla/mux v1.8.0
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
 	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/sirupsen/logrus v1.0.6 // indirect
