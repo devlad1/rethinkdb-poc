@@ -1,10 +1,12 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, FormGroupDirective, NgForm, Validators } from '@angular/forms';
 import { ErrorStateMatcher } from '@angular/material/core';
-import { concatMap, } from 'rxjs';
+import { concatMap, Subject, } from 'rxjs';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { GeneratorService } from './generator.service';
 import { ZoomService } from '../map/zoom.service';
+import { GeneratorResponse } from './generator-response';
+import { EntitiesContainerService } from '../map/entities-container.service';
 
 export class GeneratorStateMatcher implements ErrorStateMatcher {
   isErrorState(control: FormControl | null, form: FormGroupDirective | NgForm | null): boolean {
@@ -14,7 +16,6 @@ export class GeneratorStateMatcher implements ErrorStateMatcher {
 }
 
 /*
-  TODO: add timers and metrics
   TODO: test in docker-compose
 */
 
@@ -27,6 +28,11 @@ export class GeneratorComponent implements OnInit {
 
   matcher = new GeneratorStateMatcher();
 
+  sendQueryDuration = new Subject<string>()
+  sendResultArivalDuration = new Subject<string>()
+  clearQueryDuration = new Subject<string>()
+  clearResultArrivalDuration = new Subject<string>()
+
   randomGenerator = new FormGroup({
     numGenerated: new FormControl(0, [Validators.pattern(new RegExp("^[1-9][0-9]*$"))]),
     rate: new FormControl(0, [Validators.pattern(new RegExp("^[1-9][0-9]*$"))]),
@@ -38,14 +44,21 @@ export class GeneratorComponent implements OnInit {
 
   constructor(private generatorService: GeneratorService,
     private zoomService: ZoomService,
+    private entitiesContainerService: EntitiesContainerService,
     public dialog: MatDialog) { }
 
   ngOnInit(): void { }
 
   generateRandom(): void {
-    this.generatorService.sendSetEntitiesRequest(this.randomGenerator.controls.numGenerated.value)
+    const numGenerated = Number(this.randomGenerator.controls.numGenerated.value)
+    const rate = Number(this.randomGenerator.controls.rate.value)
+    if (numGenerated === null || rate === null) {
+      throw Error("random values aren't initialised")
+    }
+
+    this.generatorService.sendSetEntitiesRequest(numGenerated)
       .pipe(
-        concatMap(_ => this.generatorService.sendSetRateRequest(this.randomGenerator.controls.rate.value)),
+        concatMap(_ => this.generatorService.sendSetRateRequest(rate)),
         concatMap(_ => this.generatorService.sendStartRandomRequest())
       )
       .subscribe({
@@ -63,25 +76,60 @@ export class GeneratorComponent implements OnInit {
   }
 
   sendEntities(): void {
+    if (this.entitySender.controls.numSent.value === null) {
+      throw Error("entity values aren't initialised")
+    }
+
+    this.clearSendSubjects()    
+
+    const  startTime = new Date();
+    this.entitiesContainerService.waitForValue(Number(this.entitySender.controls.numSent.value)).subscribe(
+      () => {
+        const endTime = new Date();
+        this.sendResultArivalDuration.next(`Data arrival took ${((endTime.getTime() - startTime.getTime()) / 1000).toFixed(5)} seconds`)
+      }
+    )
+
     this.generatorService.sendSendNEntitiesRequest(this.entitySender.controls.numSent.value, this.zoomService.currentZoom)
       .subscribe({
+        next: (response) => this.sendQueryDuration.next(`The insert query took ${((response as GeneratorResponse).queryduration / 1000000000).toFixed(5)} seconds`),
         error: (errResponse) => this.handleErrorResponse(errResponse)
       }
       )
   }
 
   clearAll(): void {
+    this.clearClearAllSubjects()
+    const  startTime = new Date();
+    this.entitiesContainerService.waitForValue(0).subscribe(
+      () => {
+        const endTime = new Date();
+        this.clearResultArrivalDuration.next(`Data arrival took ${((endTime.getTime() - startTime.getTime()) / 1000).toFixed(5)} seconds`)
+      }
+    )
+    
     this.generatorService.sendClearAllEntitiesRequest()
       .subscribe({
+        next: (response) => this.clearQueryDuration.next(`The clear query took ${((response as GeneratorResponse).queryduration / 1000000000).toFixed(5)} seconds`),
         error: (errResponse) => this.handleErrorResponse(errResponse)
       }
       )
   }
 
-  private handleErrorResponse(errResponse: { error: { message: string; }; }) {
+  private handleErrorResponse(errResponse: { error: GeneratorResponse; }) {
     this.dialog.open(ErrorDialog, {
       data: new ErrorData(errResponse.error.message),
     });
+  }
+
+  private clearSendSubjects() {
+    this.sendResultArivalDuration.next('')
+    this.sendQueryDuration.next('')
+  }
+
+  private clearClearAllSubjects() {
+    this.clearResultArrivalDuration.next('')
+    this.clearQueryDuration.next('')
   }
 
 }

@@ -1,5 +1,7 @@
 .form-container {
     border-style: solid;
     margin-top: 30px;
+    width: fit-content;
+    min-width: 70%;
   }
   

@@ -9,15 +9,15 @@ import { Zoom } from '../map/stream_request';
 })
 export class GeneratorService {
 
-  BASE_GENERATOR_URL = `http://${environment.generatorHost}`
+  BASE_GENERATOR_URL = `http://${environment.generatorHost}/generator`
 
   constructor(private http: HttpClient) { }
 
-  sendSetEntitiesRequest(numEntities: number | null): Observable<Object> {
+  sendSetEntitiesRequest(numEntities: number): Observable<Object> {
     return this.http.post(`${this.BASE_GENERATOR_URL}/entities?n=${numEntities}`, '')
   }
 
-  sendSetRateRequest(rate: number | null): Observable<Object> {
+  sendSetRateRequest(rate: number): Observable<Object> {
     return this.http.post(`${this.BASE_GENERATOR_URL}/rate?n=${rate}`, '')
   }
 
@@ -33,7 +33,7 @@ export class GeneratorService {
     return this.http.post(`${this.BASE_GENERATOR_URL}/stop`, '')
   }
 
-  sendSendNEntitiesRequest(numEntities: number | null, zoom: Zoom): Observable<Object> {
+  sendSendNEntitiesRequest(numEntities: number, zoom: Zoom): Observable<Object> {
     return this.http.post(`${this.BASE_GENERATOR_URL}/send?n=${numEntities}`, JSON.stringify(zoom))
   }
 }

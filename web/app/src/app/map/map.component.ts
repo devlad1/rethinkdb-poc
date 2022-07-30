@@ -8,6 +8,8 @@ import { FormControl, FormGroup } from '@angular/forms';
 import { Color } from './entities/color';
 import { Shape } from './entities/shape';
 import { ZoomService } from './zoom.service';
+import { EntitiesContainerService } from './entities-container.service';
+import { initMapDrawing } from './map-drawing';
 
 @Component({
   selector: 'app-map',
@@ -18,12 +20,15 @@ export class MapComponent implements OnInit, OnDestroy {
 
   readonly CLOSE_POLYGON_DISTANCE = 15
 
+  // @ViewChild('glCanvas', { static: true })
+  // webGlCanvas!: ElementRef<HTMLCanvasElement>;
+  // private webGlCtx!: WebGLRenderingContext;
+
   @ViewChild('mapCanvas', { static: true })
   mapCanvas!: ElementRef<HTMLCanvasElement>;
 
   private mapCtx!: CanvasRenderingContext2D;
   private polygonCtx!: CanvasRenderingContext2D;
-  private entities: Map<number, Entity> = new Map;
   private isDragging: boolean = false;
   private isPolygonQueryActive: boolean = false;
   private dragStartX: number = 0;
@@ -40,11 +45,16 @@ export class MapComponent implements OnInit, OnDestroy {
   colorList: string[] = Object.values(Color);
   shapeList: string[] = Object.values(Shape);
 
-  constructor(private streamService: StreamService, public zoomService: ZoomService) { }
+  constructor(private streamService: StreamService,
+    public zoomService: ZoomService,
+    public entitiesContainerService: EntitiesContainerService) { }
 
   ngOnInit(): void {
     this.mapCtx = MapComponent.initCanvasCtx(this.mapCanvas)
     this.polygonCtx = MapComponent.initCanvasCtx(this.mapCanvas)
+
+    // this.webGlCtx = MapComponent.initWebGlCanvasCtx(this.webGlCanvas)
+    // initMapDrawing(this.webGlCtx)
 
     setInterval(() => this.resetAndDrawCanvas(), 16)
 
@@ -146,7 +156,7 @@ export class MapComponent implements OnInit, OnDestroy {
     if (this.isPolygonQueryActive) {
       return
     }
-    this.entities = new Map
+    this.entitiesContainerService.clear()
     let colorsFilter: Color[] | undefined = undefined
     let shapesFilter: Shape[] | undefined = undefined
     if (this.filterForm.controls.colors.enabled) {
@@ -159,7 +169,7 @@ export class MapComponent implements OnInit, OnDestroy {
   }
 
   updatePolygonStream(): void {
-    this.entities = new Map
+    this.entitiesContainerService.clear()
     let colorsFilter: Color[] | undefined = undefined
     let shapesFilter: Shape[] | undefined = undefined
     if (this.filterForm.controls.colors.enabled) {
@@ -176,11 +186,11 @@ export class MapComponent implements OnInit, OnDestroy {
       next: (m: Message) => {
         switch (m.op) {
           case Op.CREATE:
-            this.entities.set(m.entity.id, m.entity); break
+            this.entitiesContainerService.set(m.entity); break
           case Op.UPDATE:
-            this.entities.set(m.entity.id, m.entity); break
+            this.entitiesContainerService.set(m.entity); break
           case Op.DELETE:
-            this.entities.delete(m.entity.id); break
+            this.entitiesContainerService.delete(m.entity); break
         }
       },
       error: (err: any) => console.log(`got error ${err} while sending entities`),
@@ -190,7 +200,7 @@ export class MapComponent implements OnInit, OnDestroy {
 
   resetAndDrawCanvas() {
     this.mapCtx.clearRect(0, 0, this.zoomService.MAP_WIDTH, this.zoomService.MAP_HEIGHT)
-    this.entities.forEach((entity: Entity, _: number) => {
+    this.entitiesContainerService.forEach((entity: Entity) => {
       Entity.draw(entity, this.zoomService.currentZoom, this.mapCtx, this.zoomService.MAP_WIDTH, this.zoomService.MAP_HEIGHT);
     })
     if (this.polygonPoints.length > 0) {
@@ -242,6 +252,15 @@ export class MapComponent implements OnInit, OnDestroy {
 
   static initCanvasCtx(canvas: ElementRef<HTMLCanvasElement>): CanvasRenderingContext2D {
     let ctx = canvas.nativeElement.getContext('2d');
+    if (ctx != null) {
+      return ctx
+    } else {
+      throw new Error("failed canvas")
+    }
+  }
+
+  static initWebGlCanvasCtx(canvas: ElementRef<HTMLCanvasElement>): WebGLRenderingContext {
+    let ctx = canvas.nativeElement.getContext('webgl');
     if (ctx != null) {
       return ctx
     } else {

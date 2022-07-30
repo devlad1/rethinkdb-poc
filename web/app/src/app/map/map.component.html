@@ -1,6 +1,10 @@
 <p>zoom: {{ this.zoomService.currentZoom.toString() }}</p>
 
 <div style="width: 100%; overflow: hidden;">
+    <!-- <div style="width: 1020px; float: left;">
+        <canvas #glCanvas width="640" height="480"></canvas>
+    </div> -->
+
     <div style="width: 1020px; float: left;">
         <canvas #mapCanvas (contextmenu)="rightclick($event)" (mousedown)="startDrag($event)"
             (mousemove)="moveDrag($event)" (mouseup)="stopDrag($event)" (wheel)="changeZoom($event)"

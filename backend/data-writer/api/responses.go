@@ -1,14 +1,19 @@
 package api
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 type generatorResponse struct {
-	Message string `json:"message"`
+	Message       string        `json:"message"`
+	QueryDuration time.Duration `json:"queryduration,omitempty"`
 }
 
-func newResponse(message string) []byte {
+func newResponse(message string, queryDuration time.Duration) []byte {
 	res, _ := json.Marshal(generatorResponse{
-		Message: message,
+		Message:       message,
+		QueryDuration: queryDuration,
 	})
 
 	return res

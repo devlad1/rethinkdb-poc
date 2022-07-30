@@ -22,8 +22,12 @@
         [errorStateMatcher]="matcher" placeholder="">
     </mat-form-field>
     <button mat-button (click)="sendEntities()" class="add-button">Send</button>
+    <p>{{ (sendQueryDuration | async) }}&nbsp;</p>
+    <p>{{ (sendResultArivalDuration | async) }}&nbsp;</p>
 </form>
 
-<form>
+<form class="form-container">
     <button mat-button (click)="clearAll()" class="add-button">Clear All</button>
+    <p>{{ (clearQueryDuration | async) }}&nbsp;</p>
+    <p>{{ (clearResultArrivalDuration | async) }}&nbsp;</p>
 </form>
