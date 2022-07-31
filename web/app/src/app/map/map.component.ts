@@ -20,9 +20,9 @@ export class MapComponent implements OnInit, OnDestroy {
 
   readonly CLOSE_POLYGON_DISTANCE = 15
 
-  // @ViewChild('glCanvas', { static: true })
-  // webGlCanvas!: ElementRef<HTMLCanvasElement>;
-  // private webGlCtx!: WebGLRenderingContext;
+  @ViewChild('glCanvas', { static: true })
+  webGlCanvas!: ElementRef<HTMLCanvasElement>;
+  private webGlCtx!: WebGLRenderingContext;
 
   @ViewChild('mapCanvas', { static: true })
   mapCanvas!: ElementRef<HTMLCanvasElement>;
@@ -53,8 +53,8 @@ export class MapComponent implements OnInit, OnDestroy {
     this.mapCtx = MapComponent.initCanvasCtx(this.mapCanvas)
     this.polygonCtx = MapComponent.initCanvasCtx(this.mapCanvas)
 
-    // this.webGlCtx = MapComponent.initWebGlCanvasCtx(this.webGlCanvas)
-    // initMapDrawing(this.webGlCtx)
+    this.webGlCtx = MapComponent.initWebGlCanvasCtx(this.webGlCanvas)
+    initMapDrawing(this.webGlCtx)
 
     setInterval(() => this.resetAndDrawCanvas(), 16)
 

@@ -48,12 +48,3 @@ services:
     ports:
       - "8080:8080"
       - "28015:28015"
-    # deploy:
-      # resources:
-      #   limits:
-      #     cpus: "0.50"
-      #     memory: 512M
-      #   reservations:
-      #     memory: 128M
-
-
