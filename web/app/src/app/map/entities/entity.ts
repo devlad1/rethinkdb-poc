@@ -64,15 +64,14 @@ export class Entity {
         switch (entity.shape) {
             case Shape.CIRCLE: {
                 ctx.arc(0, 0, Entity.LENGTH / 2, 0, 2 * Math.PI)
-                ctx.stroke();
                 break
             }
             case Shape.SQUARE: {
-                ctx.stroke();
-                ctx.strokeRect(- Entity.LENGTH / 2, - Entity.LENGTH / 2, Entity.LENGTH, Entity.LENGTH);
+                ctx.rect(- Entity.LENGTH / 2, - Entity.LENGTH / 2, Entity.LENGTH, Entity.LENGTH);
                 break
             }
         }
+        ctx.stroke();
         ctx.setTransform(initialTransform)
     }
 

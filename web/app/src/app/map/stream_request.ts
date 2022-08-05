@@ -17,7 +17,7 @@ export class Point {
 export class Zoom {
     public static readonly MAX_LONG = 180.0
     public static readonly MAX_LAT = 90.0
-    public static readonly MAX_DIAG_LEN = 80.0;
+    public static readonly MAX_DIAG_LEN = 100.0;
     public static readonly MIN_DIAG_LEN = 3.0;
 
     topLeft: Point

@@ -252,12 +252,12 @@ func fixValuesIfNeeded(entity *schemas.Entity) {
 	entity.Location = r.Point(entity.Longitude, entity.Latitude)
 }
 
-func getRandomXPos(zoom schemas.Zoom) int {
-	return rand.Intn(int(zoom.ButtomRight.Longitude-zoom.TopLeft.Longitude)) + int(zoom.TopLeft.Longitude)
+func getRandomXPos(zoom schemas.Zoom) float64 {
+	return rand.Float64()*(zoom.ButtomRight.Longitude-zoom.TopLeft.Longitude) + zoom.TopLeft.Longitude
 }
 
-func getRandomYPos(zoom schemas.Zoom) int {
-	return rand.Intn(int(zoom.TopLeft.Latitude-zoom.ButtomRight.Latitude)) + int(zoom.ButtomRight.Latitude)
+func getRandomYPos(zoom schemas.Zoom) float64 {
+	return rand.Float64()*(zoom.TopLeft.Latitude-zoom.ButtomRight.Latitude) + zoom.ButtomRight.Latitude
 }
 
 func getRandomXVel() float64 {

@@ -9,7 +9,6 @@ import { Color } from './entities/color';
 import { Shape } from './entities/shape';
 import { ZoomService } from './zoom.service';
 import { EntitiesContainerService } from './entities-container.service';
-import { initMapDrawing } from './map-drawing';
 
 @Component({
   selector: 'app-map',
@@ -19,10 +18,6 @@ import { initMapDrawing } from './map-drawing';
 export class MapComponent implements OnInit, OnDestroy {
 
   readonly CLOSE_POLYGON_DISTANCE = 15
-
-  @ViewChild('glCanvas', { static: true })
-  webGlCanvas!: ElementRef<HTMLCanvasElement>;
-  private webGlCtx!: WebGLRenderingContext;
 
   @ViewChild('mapCanvas', { static: true })
   mapCanvas!: ElementRef<HTMLCanvasElement>;
@@ -53,10 +48,7 @@ export class MapComponent implements OnInit, OnDestroy {
     this.mapCtx = MapComponent.initCanvasCtx(this.mapCanvas)
     this.polygonCtx = MapComponent.initCanvasCtx(this.mapCanvas)
 
-    this.webGlCtx = MapComponent.initWebGlCanvasCtx(this.webGlCanvas)
-    initMapDrawing(this.webGlCtx)
-
-    setInterval(() => this.resetAndDrawCanvas(), 16)
+    setInterval(() => this.resetAndDrawCanvas(), 32)
 
     this.updateZoomStream()
   }
@@ -221,7 +213,6 @@ export class MapComponent implements OnInit, OnDestroy {
       }
       this.mapCtx.strokeStyle = "#000000";
       this.polygonCtx.stroke()
-
     }
   }
 
